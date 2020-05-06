@@ -75,5 +75,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+	
+       <provider
+            android:name="PrefProvider"
+            android:authorities="org.pocketworkstation.pckeyboard"
+            android:exported="true"
+            android:multiprocess="true" >
+        </provider>
 </application>
 </manifest>

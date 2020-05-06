@@ -118,6 +118,7 @@ public class LatinIME extends InputMethodService implements
     static final String PREF_FULLSCREEN_OVERRIDE = "fullscreen_override";
     static final String PREF_FORCE_KEYBOARD_ON = "force_keyboard_on";
     static final String PREF_KEYBOARD_NOTIFICATION = "keyboard_notification";
+    static final String PREF_TASKER_INTEGRATION = "tasker_integration";
     static final String PREF_CONNECTBOT_TAB_HACK = "connectbot_tab_hack";
     static final String PREF_FULL_KEYBOARD_IN_PORTRAIT = "full_keyboard_in_portrait";
     static final String PREF_SUGGESTIONS_IN_LANDSCAPE = "suggestions_in_landscape";
@@ -212,6 +213,7 @@ public class LatinIME extends InputMethodService implements
     private boolean mFullscreenOverride;
     private boolean mForceKeyboardOn;
     private boolean mKeyboardNotification;
+    private boolean mTaskerIntegration;
     private boolean mSuggestionsInLandscape;
     private boolean mSuggestionForceOn;
     private boolean mSuggestionForceOff;
@@ -284,6 +286,7 @@ public class LatinIME extends InputMethodService implements
     
     private PluginManager mPluginManager;
     private NotificationReceiver mNotificationReceiver;
+    private TaskerNotificationReceiver mTaskerNotificationReceiver;
 
     private VoiceRecognitionTrigger mVoiceRecognitionTrigger;
 
@@ -386,6 +389,8 @@ public class LatinIME extends InputMethodService implements
                 res.getBoolean(R.bool.default_force_keyboard_on));
         mKeyboardNotification = prefs.getBoolean(PREF_KEYBOARD_NOTIFICATION,
                 res.getBoolean(R.bool.default_keyboard_notification));
+        mTaskerIntegration = prefs.getBoolean(PREF_TASKER_INTEGRATION,
+                res.getBoolean(R.bool.default_tasker_integration));
         mSuggestionsInLandscape = prefs.getBoolean(PREF_SUGGESTIONS_IN_LANDSCAPE,
                 res.getBoolean(R.bool.default_suggestions_in_landscape));
         mHeightPortrait = getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait));
@@ -434,6 +439,12 @@ public class LatinIME extends InputMethodService implements
         registerReceiver(mReceiver, filter);
         prefs.registerOnSharedPreferenceChangeListener(this);
         setNotification(mKeyboardNotification);
+        getNotificationFromTasker(mTaskerIntegration);
+        
+        PrefDatabase.Item item = new PrefDatabase.Item();
+        item.prefName = PREF_TASKER_INTEGRATION;
+        item.enabled = String.valueOf(mTaskerIntegration);            
+        PrefDbHelper.getInstance(this).putItem(item);
     }
 
     private int getKeyboardModeNum(int origMode, int override) {
@@ -538,6 +549,24 @@ public class LatinIME extends InputMethodService implements
             mNotificationManager.cancel(NOTIFICATION_ONGOING_ID);
             unregisterReceiver(mNotificationReceiver);
             mNotificationReceiver = null;
+        }
+    }
+    
+    private void getNotificationFromTasker(boolean activated) {
+    	final String ACTION = "org.pocketworkstation.pckeyboard.action.ACCESS_KEYS";
+    	
+    	if (activated && mTaskerNotificationReceiver == null) {
+    		mTaskerNotificationReceiver = new TaskerNotificationReceiver(this);
+            final IntentFilter pFilter = new IntentFilter(ACTION);
+            registerReceiver(mTaskerNotificationReceiver, pFilter); 
+            
+            Toast.makeText(getApplicationContext(),
+            			  getResources().getString(R.string.tasker_integration_toast_message), 
+            			  Toast.LENGTH_LONG)
+            	 .show();
+        } else if (mTaskerNotificationReceiver != null) {
+            unregisterReceiver(mTaskerNotificationReceiver);
+            mTaskerNotificationReceiver = null;
         }
     }
     
@@ -657,6 +686,12 @@ public class LatinIME extends InputMethodService implements
         	unregisterReceiver(mNotificationReceiver);
             mNotificationReceiver = null;
         }
+
+        if (mTaskerNotificationReceiver != null) {
+        	unregisterReceiver(mTaskerNotificationReceiver);
+            mTaskerNotificationReceiver = null;
+        }  
+		      
         super.onDestroy();
     }
 
@@ -2988,6 +3023,17 @@ public class LatinIME extends InputMethodService implements
                     PREF_KEYBOARD_NOTIFICATION, res
                             .getBoolean(R.bool.default_keyboard_notification));
             setNotification(mKeyboardNotification);
+        } else if (PREF_TASKER_INTEGRATION.equals(key)) {
+        	mTaskerIntegration = sharedPreferences.getBoolean(
+            		PREF_TASKER_INTEGRATION, res
+                            .getBoolean(R.bool.default_tasker_integration));
+            getNotificationFromTasker(mTaskerIntegration);
+            
+            PrefDatabase.Item item = new PrefDatabase.Item();
+            item.prefName = PREF_TASKER_INTEGRATION;
+            item.enabled = String.valueOf(mTaskerIntegration);         
+            PrefDbHelper.getInstance(this).putItem(item);
+            
         } else if (PREF_SUGGESTIONS_IN_LANDSCAPE.equals(key)) {
             mSuggestionsInLandscape = sharedPreferences.getBoolean(
                     PREF_SUGGESTIONS_IN_LANDSCAPE, res

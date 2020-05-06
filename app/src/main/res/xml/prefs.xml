@@ -313,6 +313,14 @@
             android:summaryOff="@string/summary_connectbot_tab_hack_false"
             />
 
+    	<CheckBoxPreference
+            android:key="tasker_integration"
+            android:title="@string/prefs_tasker_integration"
+            android:summary="@string/prefs_tasker_integration_summary"
+            android:persistent="true"
+            android:defaultValue="@bool/default_tasker_integration"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory
